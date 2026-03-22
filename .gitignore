@@ -1,7 +1,10 @@
 node_modules
 dist
+.vite
 .DS_Store
 .env
 *.mp4
 *.mov
 *.webm
+*.jpg
+*.png
