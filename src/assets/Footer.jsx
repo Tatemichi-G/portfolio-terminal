@@ -4,7 +4,14 @@ export default function Footer({ pageType = "home" }) {
   return (
     <footer>
       <div className='container footer-wrapper'>
-        <p className='footer-logo font-roboto'>g-tatemichi.com</p>
+        <a
+          className='footer-logo font-roboto'
+          href='https://github.com/Tatemichi-G/portfolio-terminal'
+          target='_blank'
+          rel='noreferrer'
+        >
+          Git Hubを見る
+        </a>
         <nav className='footer-nav font-roboto'>
           <GlobalNav pageType={pageType} />
         </nav>

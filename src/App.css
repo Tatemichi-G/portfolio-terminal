@@ -920,6 +920,11 @@ footer p {
   letter-spacing: 4px;
 }
 
+a.footer-logo {
+  color: white;
+  display: inline-block;
+}
+
 /* MediaQuery 768px~ == ~1200px  ==================☆*/
 @media screen and (min-width: 768px) {
   .container {
