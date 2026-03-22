@@ -6,3 +6,4 @@ dist
 *.mp4
 *.mov
 *.webm
+php_api/config.php
