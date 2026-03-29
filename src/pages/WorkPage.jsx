@@ -1,6 +1,6 @@
 import { works } from "../assets/WorkersArray";
 import { useParams, Link } from "react-router-dom";
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import "../App.css";
 import Header from "../assets/Header";
 import Footer from "../assets/Footer";
@@ -14,11 +14,17 @@ export default function WorkPage() {
 
   console.log("work", work);
 
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, left: 0 });
+    }
+  }, []);
+
   if (!work) {
     return (
       <section className='work-page'>
         <h2>作品が見つかりません</h2>
-        <Link to={"/"}>戻る</Link>
+        <Link to="/">戻る</Link>
       </section>
     );
   }

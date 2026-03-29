@@ -85,7 +85,15 @@ export default function WorksDisplay({
                       : undefined,
                 }}
               >
-                <Link to={`/works/${work.id}`} className='card-link'>
+                <Link
+                  to={`/works/${work.id}`}
+                  className='card-link'
+                  onClick={() => {
+                    if (typeof window !== "undefined") {
+                      sessionStorage.setItem("home-scroll", String(window.scrollY));
+                    }
+                  }}
+                >
                   <div>
                     <p className='work-name font-gothic'>{work.name}</p>
                     <h3 className='work-name font-mincho'>{work.nameJa}</h3>

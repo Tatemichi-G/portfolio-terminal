@@ -67,6 +67,17 @@ export const works = [
     stacks: "React",
     tagId: 1,
   },
+  {
+    id: 5,
+    workerId: 1,
+    name: "NOTE STACKS",
+    nameJa: "ノートスタックス",
+    title:
+      "React/PHP/MariaDB/Docker/nginxで作成した、メモアプリ",
+    url: "/img/thumbnail/PC/note_stacks.png",
+    stacks: "React/PHP/Docker/nginx",
+    tagId: 1,
+  },
 
   // =====================
   // Paintings
@@ -75,7 +86,7 @@ export const works = [
   {
     id: 21,
     workerId: 1,
-    name: "Vase of Flowers and Conch Shell",
+    name: "※作品のプレースホルダです。随時作品に更新されます。",
     nameJa: "花瓶の花と法螺貝",
     title: "Anne Vallayer-Coster / 静物画",
     description:
@@ -85,7 +96,7 @@ export const works = [
   {
     id: 22,
     workerId: 1,
-    name: "A Road in Louveciennes",
+    name: "※作品のプレースホルダです。随時作品に更新されます。",
     nameJa: "ルーヴシエンヌの道",
     title: "Auguste Renoir / 風景画",
     description:
@@ -95,7 +106,7 @@ export const works = [
   {
     id: 23,
     workerId: 1,
-    name: "Eugène Murer",
+    name: "※作品のプレースホルダです。随時作品に更新されます。",
     nameJa: "ウジェーヌ・ミュレ",
     title: "Auguste Renoir / 肖像画",
     description:
@@ -105,7 +116,7 @@ export const works = [
   {
     id: 24,
     workerId: 1,
-    name: "The Daughters of Catulle Mendès, Huguette, Claudine, and Helyonne",
+    name: "※作品のプレースホルダです。随時作品に更新されます。",
     nameJa: "カチュール・マンデスの娘たち",
     title: "Auguste Renoir / 肖像画",
     description:
@@ -115,7 +126,7 @@ export const works = [
   {
     id: 25,
     workerId: 1,
-    name: "Paradise",
+    name: "※作品のプレースホルダです。随時作品に更新されます。",
     nameJa: "楽園",
     title: "Carlo Saraceni / 宗教・寓意画",
     description:
@@ -125,7 +136,7 @@ export const works = [
   {
     id: 26,
     workerId: 1,
-    name: "A Bouquet of Flowers",
+    name: "※作品のプレースホルダです。随時作品に更新されます。",
     nameJa: "花束",
     title: "Clara Peeters / 静物画",
     description:
@@ -135,7 +146,7 @@ export const works = [
   {
     id: 27,
     workerId: 1,
-    name: "At the Milliner's",
+    name: "※作品のプレースホルダです。随時作品に更新されます。",
     nameJa: "帽子店にて",
     title: "Edgar Degas / 近代生活画",
     description:
@@ -145,7 +156,7 @@ export const works = [
   {
     id: 28,
     workerId: 1,
-    name: "Allegory of the Planets and Continents",
+    name: "※作品のプレースホルダです。随時作品に更新されます。",
     nameJa: "惑星と大陸の寓意",
     title: "Giovanni Battista Tiepolo / 天井画・寓意画",
     description:
@@ -155,7 +166,7 @@ export const works = [
   {
     id: 29,
     workerId: 1,
-    name: "The Flight into Egypt",
+    name: "※作品のプレースホルダです。随時作品に更新されます。",
     nameJa: "エジプトへの逃避",
     title: "Giovanni Battista Tiepolo / 宗教画",
     description:
@@ -165,7 +176,7 @@ export const works = [
   {
     id: 30,
     workerId: 1,
-    name: "The Dispatch-Bearer",
+    name: "※作品のプレースホルダです。随時作品に更新されます。",
     nameJa: "急使",
     title: "Giovanni Boldini / 肖像・人物画",
     description:
@@ -175,7 +186,7 @@ export const works = [
   {
     id: 31,
     workerId: 1,
-    name: "Mäda Primavesi",
+    name: "※作品のプレースホルダです。随時作品に更新されます。",
     nameJa: "マーダ・プリマヴェージ",
     title: "Gustav Klimt / 肖像画",
     description:
@@ -185,7 +196,7 @@ export const works = [
   {
     id: 32,
     workerId: 1,
-    name: "Music",
+    name: "※作品のプレースホルダです。随時作品に更新されます。",
     nameJa: "音楽",
     title: "Gustav Klimt / 象徴主義",
     description:
@@ -195,7 +206,7 @@ export const works = [
   {
     id: 33,
     workerId: 1,
-    name: "Portrait of Adele Bloch-Bauer I",
+    name: "※作品のプレースホルダです。随時作品に更新されます。",
     nameJa: "アデーレ・ブロッホ＝バウアーの肖像 I",
     title: "Gustav Klimt / 肖像画",
     description:
@@ -205,7 +216,7 @@ export const works = [
   {
     id: 34,
     workerId: 1,
-    name: "The Kiss",
+    name: "※作品のプレースホルダです。随時作品に更新されます。",
     nameJa: "接吻",
     title: "Gustav Klimt / 象徴主義",
     description:
@@ -215,7 +226,7 @@ export const works = [
   {
     id: 35,
     workerId: 1,
-    name: "Roses and Lilies",
+    name: "※作品のプレースホルダです。随時作品に更新されます。",
     nameJa: "薔薇と百合",
     title: "Henri Fantin-Latour / 静物画",
     description:
@@ -225,7 +236,7 @@ export const works = [
   {
     id: 36,
     workerId: 1,
-    name: "The Virgin Adoring the Host",
+    name: "※作品のプレースホルダです。随時作品に更新されます。",
     nameJa: "聖体を礼拝する聖母",
     title: "Jean-Auguste-Dominique Ingres / 宗教画",
     description:
@@ -235,7 +246,7 @@ export const works = [
   {
     id: 37,
     workerId: 1,
-    name: "Venice, from the Porch of Madonna della Salute",
+     name: "※作品のプレースホルダです。随時作品に更新されます。",
     nameJa: "マドンナ・デッラ・サルーテの回廊から見たヴェネツィア",
     title: "J. M. W. Turner / 風景画",
     description:
@@ -245,7 +256,7 @@ export const works = [
   {
     id: 38,
     workerId: 1,
-    name: "The Judgment of Solomon",
+    name: "※作品のプレースホルダです。随時作品に更新されます。",
     nameJa: "ソロモンの審判",
     title: "Leonaert Bramer / 宗教・歴史画",
     description:
@@ -255,7 +266,7 @@ export const works = [
   {
     id: 39,
     workerId: 1,
-    name: "Madonna and Child Enthroned",
+    name: "※作品のプレースホルダです。随時作品に更新されます。",
     nameJa: "玉座の聖母子",
     title: "Master of the Magdalen / 宗教画",
     description:
@@ -265,7 +276,7 @@ export const works = [
   {
     id: 40,
     workerId: 1,
-    name: "The Fishermen",
+    name: "※作品のプレースホルダです。随時作品に更新されます。",
     nameJa: "漁師たち",
     title: "Paul Cézanne / 風景・人物画",
     description:
@@ -275,7 +286,7 @@ export const works = [
   {
     id: 41,
     workerId: 1,
-    name: "Wolf and Fox Hunt",
+    name: "※作品のプレースホルダです。随時作品に更新されます。",
     nameJa: "狼と狐の狩り",
     title: "Peter Paul Rubens / 狩猟画",
     description:
@@ -285,7 +296,7 @@ export const works = [
   {
     id: 42,
     workerId: 1,
-    name: "Lady Smith and Her Children",
+    name: "※作品のプレースホルダです。随時作品に更新されます。",
     nameJa: "レディ・スミスとその子どもたち",
     title: "Sir Joshua Reynolds / 肖像画",
     description:
@@ -303,23 +314,3 @@ export const workTags = [
   { id: 6, tagName: "3Dmodel" },
 ];
 
-export const newsArray = [
-  {
-    id: 1,
-    title: "テスト1",
-    content: "テスト1",
-    imageUrl: "/img/thumbnail/klimt/car-color-editor.png",
-  },
-  {
-    id: 2,
-    title: "テスト2",
-    content: "テスト2",
-    imageUrl: "/img/thumbnail/klimt/car_demo_2.png",
-  },
-  {
-    id: 3,
-    title: "テスト3",
-    content: "テスト3",
-    imageUrl: "/img/thumbnail/klimt/roomplanner.png",
-  },
-];

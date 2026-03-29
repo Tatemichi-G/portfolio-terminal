@@ -54,7 +54,7 @@ const sphereStart = 0.3;
 const sphereStop = 0.4;
 
 // 球の半径（見た目に合わせて）
-const sphereRadius = isMobile ? 2.4 : 2.8;
+const sphereRadius = isMobile ? 2.4 : 2.9;
 
 // =========================================================
 // ★球体の見た目を “綺麗に密に” するチューニング（ここだけ触ればOK）
@@ -64,7 +64,7 @@ const SPHERE_RADIUS_IN = isMobile ? 0.6 : 0.7;
 //   - 小さくするほど：球が締まってギャップが埋まる
 //   - 小さくしすぎると：タイルが重なって破綻しやすい（0.80〜0.95が安全帯）
 
-const SPHERE_TILE_FILL = isMobile ? 0.8 : 0.68;
+const SPHERE_TILE_FILL = isMobile ? 0.8 : 0.65;
 // ↑ 球体化のときにタイルをどれだけ大きく見せるか（1.0=そのまま）
 //   - 上げるほど：ギャップが埋まる（球体が“面”っぽくなる）
 //   - 上げすぎると：重なってZファイトや破綻（1.15〜1.40で調整）
@@ -74,9 +74,36 @@ const SPHERE_SQUARE_LONGSIDE = true;
 //   true : 長辺に合わせて短辺を伸ばす → “密”になりやすい（おすすめ）
 //   false: 短辺に合わせて長辺を縮める → スカスカになりやすい
 
+const ALWAYS_FLOW_TILES = false;
+// ↑ false にすると、球体化に合わせて流れを止めて中央へ戻す
+//   true にすると、タイルの横流れと wrap を止めずに維持する
+
+const TILE_CURVE_STRENGTH = 1;
+// ↑ タイル自体の“反り”の強さ。
+//   値を大きくするほど：1枚1枚が強く折れ曲がって、球っぽさが強くなる
+//   値を小さくするほど：反りが弱くなって、板っぽさが残る
+//   目安:
+//   - 1.0 前後 = かなり控えめ
+//   - 1.2〜1.4 = 自然寄り
+//   - 1.6 以上 = 丸みがかなり強い
+
+const SPHERE_ROTATION_SPEED = 0.09;
+// ↑ 球体フェーズで全体を Y 軸にどれくらいの速さで回すか。
+//   値を大きくするほど：回転が速くなる
+//   値を小さくするほど：ゆっくり回る
+
 // ★ uniforms: uTex / uTime / uMorph / uSeed
 const BrushMat = shaderMaterial(
-  { uTex: null, uTime: 0, uMorph: 0, uSeed: 0, uFade: 1, uBend: 0 },
+  {
+    uTex: null,
+    uTime: 0,
+    uMorph: 0,
+    uSeed: 0,
+    uFade: 1,
+    uBend: 0,
+    uSphereT: 0,
+    uCurveRadius: 1,
+  },
   // ===== vertex =====
   `
   varying vec2 vUv;
@@ -84,6 +111,8 @@ const BrushMat = shaderMaterial(
   uniform float uMorph;
   uniform float uSeed;
   uniform float uBend;
+  uniform float uSphereT;
+  uniform float uCurveRadius;
 
   float hash(float n){ return fract(sin(n)*43758.5453123); }
   float noise1(float x){
@@ -117,6 +146,20 @@ const BrushMat = shaderMaterial(
     float bend = uBend;          // 0..1
     float t = (vUv.x - 0.5);     // -0.5..0.5
     p.y += sin(t * 3.14159) * 0.25 * bend;
+
+    // 球体化に合わせて、タイル自体も球面パッチへ少しずつ沿わせる
+    float curveT = smoothstep(0.0, 1.0, uSphereT);
+    float radius = max(uCurveRadius / ${TILE_CURVE_STRENGTH.toFixed(2)}, 0.001);
+    float ax = p.x / radius;
+    float ay = p.y / radius;
+
+    vec3 curved = vec3(
+      sin(ax) * radius,
+      sin(ay) * radius,
+      (cos(ax) * cos(ay) - 1.0) * radius
+    );
+
+    p = mix(p, curved, curveT);
 
     gl_Position = projectionMatrix * modelViewMatrix * vec4(p,1.0);
   }
@@ -193,6 +236,9 @@ function SceneMV({
   tileHeight,
   spherePosition,
   sphereT,
+  appearanceT,
+  sphereRadiusNow,
+  interactive = true,
 }) {
   // meshをセレクトできるようにRefを設定する。
   const meshRef = useRef();
@@ -269,6 +315,8 @@ function SceneMV({
   const tmpObjRef = useRef(new THREE.Object3D());
   const tmpNormalRef = useRef(new THREE.Vector3());
   const tmpToCameraRef = useRef(new THREE.Vector3());
+  const tmpWorldPosRef = useRef(new THREE.Vector3());
+  const tmpWorldQuatRef = useRef(new THREE.Quaternion());
 
   // 平面時に戻すべき “正面姿勢”
   const identityQuatRef = useRef(new THREE.Quaternion()); // (0,0,0,1)
@@ -276,6 +324,10 @@ function SceneMV({
   useFrame((state, delta) => {
     const MIN_BACK_ALPHA = 0.25;
     // ↑ 裏側が完全に消えると“点滅”っぽく見えるので、最低値を残す（0.0にすると完全に消える）
+    const FRONT_ALPHA_BOOST = 1.55;
+    // ↑ 球体回転中に“手前に来たタイル”をどこまで濃く見せるか。
+    //   値を大きくするほど：正面タイルの存在感が強くなる
+    //   値を小さくするほど：全体が均一な薄さに近づく
 
     const transition = state.clock.getElapsedTime();
     if (!meshRef.current) return;
@@ -285,13 +337,15 @@ function SceneMV({
       matRef.current.uTime = transition; // 歪み（ゆらゆら）用。消さない
       matRef.current.uMorph = morph; // スクロール同期（線化など）
       matRef.current.uFade = fade; // 全体フェード
+      matRef.current.uSphereT = sphereT;
+      matRef.current.uCurveRadius = sphereRadiusNow;
     }
 
     // morph終盤の強調（0.35以降で効く）
     const m = smoothstep(0.2, MORPH_STOP, morph);
 
     // 球体化が進むほど “線化演出” を弱める（球体では線になりすぎないように）
-    const lineK = 1.0 - sphereT;
+    const lineK = 1.0 - appearanceT;
     const stretchX = 1 + m * 5.0 * lineK; // 値↑で平面時の横伸びが強くなる
     const thinY = 1 - m * 0.05 * lineK; // 値↑で平面時の縦つぶれが強くなる
     const yScale = Math.max(0.05, thinY);
@@ -324,15 +378,18 @@ function SceneMV({
       meshRef.current.quaternion.slerp(helper.quaternion, sphereT);
 
       // ---- 裏側フェード（完全には消さない） ----
+      meshRef.current.getWorldPosition(tmpWorldPosRef.current);
+      meshRef.current.getWorldQuaternion(tmpWorldQuatRef.current);
+
       const faceNormal = tmpNormalRef.current
         .set(0, 0, 1)
-        .applyQuaternion(meshRef.current.quaternion);
+        .applyQuaternion(tmpWorldQuatRef.current);
 
       const toCamera = tmpToCameraRef.current
         .set(
-          camera.position.x - p.x,
-          camera.position.y - p.y,
-          camera.position.z - p.z,
+          camera.position.x - tmpWorldPosRef.current.x,
+          camera.position.y - tmpWorldPosRef.current.y,
+          camera.position.z - tmpWorldPosRef.current.z,
         )
         .normalize();
 
@@ -344,8 +401,18 @@ function SceneMV({
         1,
       );
       const backFade = THREE.MathUtils.lerp(MIN_BACK_ALPHA, 1.0, backT);
+      const frontT = THREE.MathUtils.clamp(
+        THREE.MathUtils.mapLinear(facing, 0.15, 0.95, 0, 1),
+        0,
+        1,
+      );
+      const frontBoost = THREE.MathUtils.lerp(
+        1.0,
+        FRONT_ALPHA_BOOST,
+        frontT * appearanceT,
+      );
 
-      if (matRef.current) matRef.current.uFade = fade * backFade;
+      if (matRef.current) matRef.current.uFade = fade * backFade * frontBoost;
     } else {
       // ★超重要：球体から戻った時に “姿勢も必ず正面へ戻す”
       // ここが無いとスクロールで戻してもごちゃごちゃ（裏向き）が残る
@@ -373,7 +440,7 @@ function SceneMV({
     const squareYTarget = targetSide / tileHeight; // tileHeightが短いなら>1で伸びる
 
     // sphereT=0 → 1 で 正方形化を入れる
-    const squareK = smoothstep(0.0, 1.0, sphereT);
+    const squareK = smoothstep(0.0, 1.0, appearanceT);
     const squareX = THREE.MathUtils.lerp(1.0, squareXTarget, squareK);
     const squareY = THREE.MathUtils.lerp(1.0, squareYTarget, squareK);
 
@@ -398,6 +465,7 @@ function SceneMV({
         ref={meshRef}
         position={post}
         onPointerDown={(el) => {
+          if (!interactive) return;
           el.stopPropagation();
           onSelect(index);
         }}
@@ -408,6 +476,8 @@ function SceneMV({
           uTex={texture}
           uSeed={index * 0.123}
           uFade={fade}
+          uSphereT={sphereT}
+          uCurveRadius={sphereRadiusNow}
           transparent
           depthWrite={false}
         />
@@ -477,6 +547,7 @@ export default function ThreeMV() {
 
   const columns = Math.ceil(texturesLoop.length / rows);
   const flowRef = useRef(null);
+  const sphereSpinRef = useRef(null);
   const loopWidth = columns * gapX;
   const speed = 0.05;
 
@@ -484,6 +555,8 @@ export default function ThreeMV() {
   const [selectedIndex, setSelectedIndex] = useState(null);
 
   const [morph, setMorph] = useState(0); // ★これが無いと死ぬ
+  const [visualSphereT, setVisualSphereT] = useState(0);
+  const [appearanceSphereT, setAppearanceSphereT] = useState(0);
 
   // .mainのアニメーション用セレクト
   const mainRef = useRef([]);
@@ -590,12 +663,31 @@ export default function ThreeMV() {
   );
 
   // 球体の進行度（0..1）
-  const sphereT = smoothstep(sphereStart, sphereStop, morphStop);
+  const rawSphereT = smoothstep(sphereStart, sphereStop, morphStop);
+  const sphereT = visualSphereT;
+  const appearanceT = appearanceSphereT;
 
   // 球体半径を球体化中に縮める（ギャップが埋まりやすくなる）
   // - SPHERE_RADIUS_IN を下げるほど球が“締まる”
   const radiusNow =
     sphereRadius * THREE.MathUtils.lerp(1.0, SPHERE_RADIUS_IN, sphereT);
+
+  const poleTiles = [
+    {
+      key: "north-pole",
+      textureUrl: textures[0],
+      basePosition: [0, gapY * 1.35, 0],
+      spherePosition: [0, radiusNow, 0],
+    },
+    {
+      key: "south-pole",
+      textureUrl: textures[Math.floor(textures.length / 2)],
+      basePosition: [0, -gapY * 1.35, 0],
+      spherePosition: [0, -radiusNow, 0],
+    },
+  ];
+  // ↑ 極の穴埋め用タイル。
+  //   平面時はほぼ見えず、球体化が進むほど上下の極に出てくる。
 
   return (
     <div className='mv-container'>
@@ -629,7 +721,7 @@ export default function ThreeMV() {
           </p>
 
           <p className='main-anim' ref={(el) => (mainRef.current[6] = el)}>
-            一人前のフロントエンドエンジニアに
+            一人前のエンジニアに
             <span
               className='sp-span main-anim'
               ref={isMobile ? (el) => (mainRef.current[7] = el) : null}
@@ -672,11 +764,20 @@ export default function ThreeMV() {
           flowRef={flowRef}
           baseSpeed={speed}
           loopWidth={loopWidth}
+          sphereT={sphereT}
+        />
+
+        <SphereSpin
+          spinRef={sphereSpinRef}
           morph={morphStop}
+          rawSphereT={rawSphereT}
+          onSphereTChange={setVisualSphereT}
+          onAppearanceTChange={setAppearanceSphereT}
         />
 
         <a.group ref={flowRef}>
-          {texturesLoop.map((url, index) => {
+          <group ref={sphereSpinRef}>
+            {texturesLoop.map((url, index) => {
             const col = Math.floor(index / rows);
             const row = index % rows;
             const x = col * gapX - loopWidth / 2;
@@ -734,34 +835,165 @@ export default function ThreeMV() {
                 tileHeight={tileHeight}
                 spherePosition={spherePosition}
                 sphereT={sphereT}
+                appearanceT={appearanceT}
+                sphereRadiusNow={radiusNow}
               />
             );
-          })}
+            })}
+
+            {poleTiles.map((tile, poleIndex) => (
+              <SceneMV
+                key={tile.key}
+                textureUrl={tile.textureUrl}
+                basePosition={tile.basePosition}
+                morph={morphStop}
+                index={texturesLoop.length + poleIndex}
+                selectedIndex={selectedIndex}
+                onSelect={setSelectedIndex}
+                selectedPosition={null}
+                fade={tileAlpha * sphereT}
+                tileWidth={tileWidth}
+                tileHeight={tileHeight}
+                spherePosition={tile.spherePosition}
+                sphereT={sphereT}
+                appearanceT={appearanceT}
+                sphereRadiusNow={radiusNow}
+                interactive={false}
+              />
+            ))}
+          </group>
         </a.group>
       </Canvas>
     </div>
   );
 }
 
-function FlowX({ flowRef, baseSpeed, loopWidth, morph }) {
+function FlowX({ flowRef, baseSpeed, loopWidth, sphereT }) {
   useFrame((_, delta) => {
     const g = flowRef.current;
     if (!g) return;
 
-    const sphereT = smoothstep(sphereStart, sphereStop, morph);
-    const moveK = 1.0 - sphereT;
+    const shouldLockToCenter = !ALWAYS_FLOW_TILES && sphereT > 0.0001;
+    const FLOW_STOP_STRENGTH = 1.35;
+    // ↑ 球体化中に横流れをどれくらい強く止めるか。
+    //   値を大きくするほど：早めに減速して、球体が中央で止まりやすくなる
+    //   値を小さくするほど：球体化の最中も横に流れやすい
 
-    // 球体化に近づくほど流れを止める（sphereT=1で完全停止）
-    g.position.x -= delta * baseSpeed * moveK;
+    const CENTER_LOCK_DAMP = 4.0;
+    // ↑ 球体を中央へ吸い寄せる強さ。
+    //   値を大きくするほど：中央へ素早く戻る
+    //   値を小さくするほど：ゆっくり中央へ寄る
 
-    // ★球体化直前は wrap させない（飛び防止）
-    const canWrap = morph < sphereStart - 0.03;
-    if (canWrap && g.position.x <= -loopWidth) g.position.x += loopWidth;
+    const moveK = ALWAYS_FLOW_TILES
+      ? 1.0
+      : Math.max(0, 1.0 - sphereT * FLOW_STOP_STRENGTH);
 
-    // 球体化中は中心へ寄せる（滑らか）
-    if (sphereT > 0.0001) {
-      g.position.x = THREE.MathUtils.damp(g.position.x, 0, 4.0, delta);
+    // 横流れ
+    if (!shouldLockToCenter) {
+      g.position.x -= delta * baseSpeed * moveK;
     }
+
+    // 平面中は画面から消えないように wrap させ続ける
+    if (!shouldLockToCenter && g.position.x <= -loopWidth) g.position.x += loopWidth;
+
+    // 球体化中は中央へ寄せて、そのまま中央で停止
+    if (shouldLockToCenter) {
+      g.position.x = THREE.MathUtils.damp(
+        g.position.x,
+        0,
+        CENTER_LOCK_DAMP,
+        delta,
+      );
+    }
+  });
+
+  return null;
+}
+
+function SphereSpin({
+  spinRef,
+  morph,
+  rawSphereT,
+  onSphereTChange,
+  onAppearanceTChange,
+}) {
+  const prevMorphRef = useRef(morph);
+  const isResettingRef = useRef(false);
+  const visualSphereTRef = useRef(rawSphereT);
+  const appearanceSphereTRef = useRef(rawSphereT);
+
+  useFrame((_, delta) => {
+    const g = spinRef.current;
+    if (!g) return;
+
+    const ROTATION_RESET_DAMP = 7.5;
+    // ↑ 球体から戻る前に、回転角を初期位置へ戻す速さ。
+    //   値を大きくするほど：素早く回転が戻る
+    //   値を小さくするほど：回転を残したまま戻りやすい
+
+    const RESET_ANGLE_EPS = 0.02;
+    // ↑ この角度以下になったら「回転リセット完了」とみなす。
+
+    const APPEARANCE_RETURN_DAMP = 2.8;
+    // ↑ 透明度や伸びなど、見た目側が rawSphereT にどれくらい緩やかに追従するか。
+    //   値を大きくするほど：見た目も早く戻る
+    //   値を小さくするほど：見た目だけゆっくり戻る
+
+    const isScrollingBack = morph < prevMorphRef.current - 0.0005;
+    const wrappedRotation = Math.atan2(Math.sin(g.rotation.y), Math.cos(g.rotation.y));
+    g.rotation.y = wrappedRotation;
+
+    if (rawSphereT >= 0.999) {
+      isResettingRef.current = false;
+    } else if (isScrollingBack && visualSphereTRef.current > 0.95) {
+      isResettingRef.current = true;
+    }
+
+    let nextSphereT = rawSphereT;
+
+    if (isResettingRef.current) {
+      g.rotation.y = THREE.MathUtils.damp(
+        g.rotation.y,
+        0,
+        ROTATION_RESET_DAMP,
+        delta,
+      );
+
+      nextSphereT = 1.0;
+
+      if (Math.abs(g.rotation.y) < RESET_ANGLE_EPS) {
+        g.rotation.y = 0;
+        isResettingRef.current = false;
+        nextSphereT = rawSphereT;
+      }
+    } else {
+      const spinK = smoothstep(0.15, 1.0, rawSphereT);
+
+      if (spinK > 0.0001) {
+        g.rotation.y += delta * SPHERE_ROTATION_SPEED * spinK;
+      } else {
+        g.rotation.y = THREE.MathUtils.damp(g.rotation.y, 0, 3.0, delta);
+      }
+    }
+
+    if (Math.abs(nextSphereT - visualSphereTRef.current) > 0.0005) {
+      visualSphereTRef.current = nextSphereT;
+      onSphereTChange(nextSphereT);
+    }
+
+    const nextAppearanceT = THREE.MathUtils.damp(
+      appearanceSphereTRef.current,
+      rawSphereT,
+      APPEARANCE_RETURN_DAMP,
+      delta,
+    );
+
+    if (Math.abs(nextAppearanceT - appearanceSphereTRef.current) > 0.0005) {
+      appearanceSphereTRef.current = nextAppearanceT;
+      onAppearanceTChange(nextAppearanceT);
+    }
+
+    prevMorphRef.current = morph;
   });
 
   return null;

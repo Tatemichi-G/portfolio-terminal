@@ -70,7 +70,7 @@ export default function News({ cmsNews }) {
             onClick={() => moveNews(0)}
             disabled={isFirstNews}
           >
-            <img src='/icons/chevron-double-left.svg' alt='最初に戻るボタン' />
+            <img src='/news-icons/chevron-double-left.svg' alt='最初に戻るボタン' />
           </button>
           <button
             type='button'
@@ -78,7 +78,7 @@ export default function News({ cmsNews }) {
             onClick={() => moveNews(currentNewsIndex - 1)}
             disabled={isFirstNews}
           >
-            <img src='/icons/chevron-left.svg' alt='前に戻るボタン' />
+            <img src='/news-icons/chevron-left.svg' alt='前に戻るボタン' />
           </button>
           <p className='news-count font-roboto'>
             {cmsNews.length === 0 ? 0 : currentNewsIndex + 1} / {cmsNews.length}
@@ -89,7 +89,7 @@ export default function News({ cmsNews }) {
             onClick={() => moveNews(currentNewsIndex + 1)}
             disabled={isLastNews}
           >
-            <img src='/icons/chevron-right.svg' alt='次に進むボタン' />
+            <img src='/news-icons/chevron-right.svg' alt='次に進むボタン' />
           </button>
           <button
             type='button'
@@ -97,7 +97,7 @@ export default function News({ cmsNews }) {
             onClick={() => moveNews(maxNewsIndex)}
             disabled={isLastNews}
           >
-            <img src='/icons/chevron-double-right.svg' alt='最後を見るボタン' />
+            <img src='/news-icons/chevron-double-right.svg' alt='最後を見るボタン' />
           </button>
         </div>
       </div>

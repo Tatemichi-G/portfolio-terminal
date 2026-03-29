@@ -1,5 +1,8 @@
 <?php
 
+// このファイルと同じ階層に config.php を置いて使う。
+// ひな形は config.sample.php を使う。
+
 // config.php の場所を先にまとめておく。
 $configPath = __DIR__ . "/config.php";
 

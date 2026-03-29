@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect, useLayoutEffect } from "react";
+import { useLocation } from "react-router-dom";
 import "../App.css";
 import { Workers, works } from "../assets/WorkersArray.jsx";
 import { getCMS } from "../assets/fetch.js";
@@ -6,6 +7,7 @@ import ThreeMV from "../assets/ThreeMV.jsx";
 import WorksDisplay from "../assets/WorksDisplay.jsx";
 import Header from "../assets/Header.jsx";
 import News from "../assets/News.jsx";
+import Contact from "../assets/Contact.jsx";
 import Footer from "../assets/Footer.jsx";
 
 // react-router-dom
@@ -18,14 +20,10 @@ import { ScrollTrigger } from "gsap/all";
 gsap.registerPlugin(ScrollTrigger);
 
 export default function HomePage() {
+  const location = useLocation();
   // Tagのキー合わせ、フィルター =>
   const all = "All";
   const [selectedTagId, setSelectedTagId] = useState(all);
-  const [company, setCompany] = useState("");
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [subject, setSubject] = useState("");
-  const [message, setMessage] = useState("");
 
   const [selectedWorkerId, setSelectedWorkerId] = useState(
     Workers[0]?.id ?? null,
@@ -55,23 +53,41 @@ export default function HomePage() {
   // .works-list の中のカードをそれぞれ格納する場所
   const worksRef = useRef([]);
 
-  const handleContactSubmit = (event) => {
-    event.preventDefault();
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const saved = Number(sessionStorage.getItem("home-scroll") || 0);
+      if (saved > 0) {
+        window.scrollTo({ top: saved, left: 0, behavior: "instant" });
+        sessionStorage.removeItem("home-scroll");
+      }
+    }
+  }, []);
 
-    const mailSubject = subject.trim() || "採用・ご連絡について";
-    const body = [
-      `会社名: ${company || "未入力"}`,
-      `お名前: ${name || "未入力"}`,
-      `メールアドレス: ${email || "未入力"}`,
-      "",
-      "お問い合わせ内容:",
-      message || "未入力",
-      "",
-      "※ フリーランス案件の受付は行っておりません。採用・就職に関するご連絡のみお願いいたします。",
-    ].join("\n");
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!location.hash) return;
 
-    window.location.href = `mailto:gt0609@g-tatemichi.com?subject=${encodeURIComponent(mailSubject)}&body=${encodeURIComponent(body)}`;
-  };
+    const targetId = location.hash.replace("#", "");
+    const targetElement = document.getElementById(targetId);
+
+    if (!targetElement) return;
+
+    const headerElement = document.querySelector("header .container");
+    const headerHeight = headerElement?.getBoundingClientRect().height ?? 0;
+    const targetTop =
+      window.scrollY +
+      targetElement.getBoundingClientRect().top -
+      headerHeight -
+      16;
+
+    window.scrollTo({
+      top: Math.max(targetTop, 0),
+      left: 0,
+      behavior: "smooth",
+    });
+  }, [location.hash]);
+
+ 
 
   // ハンバーガーメニュー
 
@@ -472,71 +488,7 @@ export default function HomePage() {
           {cmsNews ? <News cmsNews={cmsNews} /> : <></>}
 
           {/* Contact Section */}
-          <section id='contact'>
-            <div className='container'>
-              <h2 className='title font-gothic'>お問い合わせ</h2>
-              <p className='contact-lead font-mincho'>
-                就職・採用に関するご連絡、または非営利でWEBエンジニアとして交流していただける方はこちらからお願いいたします。
-              </p>
-              <p className='contact-warning font-gothic'>
-                ※あくまで就活を目的としたポートフォリオサイトです。フリーランス案件はお受けしません。
-              </p>
-              <form className='contact-form' onSubmit={handleContactSubmit}>
-                <label className='contact-item contact-company font-gothic'>
-                  <span>会社名</span>
-                  <input
-                    type='text'
-                    value={company}
-                    onChange={(event) => setCompany(event.target.value)}
-                    placeholder='株式会社〇〇'
-                  />
-                </label>
-                <label className='contact-item contact-name font-gothic'>
-                  <span>お名前</span>
-                  <input
-                    type='text'
-                    value={name}
-                    onChange={(event) => setName(event.target.value)}
-                    placeholder='山田 太郎'
-                    required
-                  />
-                </label>
-                <label className='contact-item contact-email font-gothic'>
-                  <span>メールアドレス</span>
-                  <input
-                    type='email'
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                    placeholder='sample@example.com'
-                    required
-                  />
-                </label>
-                <label className='contact-item contact-subject font-gothic'>
-                  <span>件名</span>
-                  <input
-                    type='text'
-                    value={subject}
-                    onChange={(event) => setSubject(event.target.value)}
-                    placeholder='求人について'
-                    required
-                  />
-                </label>
-                <label className='contact-item contact-message font-gothic'>
-                  <span>お問い合わせ内容</span>
-                  <textarea
-                    value={message}
-                    onChange={(event) => setMessage(event.target.value)}
-                    rows='8'
-                    placeholder='ご用件をご記入ください。'
-                    required
-                  />
-                </label>
-                <button type='submit' className='contact-submit font-gothic'>
-                  メールを作成する
-                </button>
-              </form>
-            </div>
-          </section>
+          <Contact />
 
           <Footer pageType='home' />
         </>
